@@ -1,0 +1,43 @@
+
+    Input file(s):            Selects input file(s)
+                              shift+click to select multiple files in fileselector  
+                              Select a .req file to request data from MIDI input.
+
+    Output file:              Select output filename.
+                              Possible file name extensions:
+                              .dx7 = raw headerless DX7 data
+                              .mid = DX7 SysEx data embedded in Standard Midi File
+                              .syx (or any other extension) = pure SysEx file
+                              .txt = single patch parameterlist, or patchname list.
+                              
+                              Dump directly to MIDI: 
+                              enter "MIDI" (without the quotes) as filename.
+    
+    Midi configuration:       Click on the MIDI icon and select the relevant MIDI ports.
+                              The selection will be saved in a file "dxtxmidi.cfg"
+
+    Options:
+        --brightness VALUE    Adjust global brightness (+/-VALUE)
+        --bc2at               Copy BreathControl data to AfterTouch
+        --bc                  Use Breath Controller data
+        --channel CHANNEL     Midi channel (1~16) in SysEx header.
+                              (0 or no value = don't change) 
+        --check               Check SysEx checksum before import. 
+        --dx72                Save with AMEM/ACED (DX7II) data
+        --find STRING         Search for STRING in voicenames  
+        --fc1                 Use FC1 foot controller data
+        --fc2                 Use FC2 foot controller data
+        --nodupes             Remove duplicates
+        --nodupes2            Remove duplicates, but ignore voicenames
+        --nosilence           Remove patches that produce no sound
+        --nosplit             Save data in one single file
+        --offset OFFSET       Ignore first OFFSET bytes in input file(s)
+                              If OFFSET is "-N" ignore last N bytes 
+                              and search for VMEM data backwards.
+        --random              Renata's Randomizer
+        --select RANGE        Select RANGE to save (e.g. "2,5,7-12,18-32") 
+        --sort                Sort patches by voicename (case-insensitive)
+        --sort2               Sort patches by voicename (case-sensitive)
+        --split               Save each single patch as a separate file
+        --tx7                 Save with TX7 function data
+

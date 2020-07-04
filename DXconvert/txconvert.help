@@ -1,0 +1,44 @@
+
+    Input file(s):            Selects input file(s)
+                              shift+click to select multiple files in fileselector
+                              Select a .req file to request data from MIDI input.
+
+
+    Output file:              Select output file name.
+                              Possible file name extensions:
+                              .dxx = raw headerless 4OP VMEM data
+                              .fb1 = raw headerless FB01 data
+                              .opm = VOPM voice data
+                              .mid = SysEx data embedded in Standard Midi File
+                              .syx (or any other extension) = pure SysEx file
+                              .txt = parameterlist for one patch, or patchname list
+                              
+                              Dump directly to MIDI output:
+                              enter "MIDI" (without the quotes) as filename
+
+    Midi configuration:       Click on the MIDI icon and select the relevant MIDI ports.
+                              The selection will be saved in a file "dxtxmidi.cfg"
+
+    Options:
+        --brightness VALUE    Adjust global brightness. (+/-) 
+        --bc                  Use BreathControl (if available)
+        --bc2at               Copy BreathControl data to Aftertouch
+        --channel CHANNEL     Midi channel (1~16) in SysEx header
+        --check               Check SysEx checksum before import
+        --find STRING         Search for STRING in patchnames
+        --nosplit             Don't split: save data in one file
+        --nodupes             Remove duplicates
+        --nodupes2            Remove duplicates, also with different voicenames
+        --nosilence           Remove patches that produce no sound
+        --offset OFFSET       Ignore first OFFSET bytes in input file(s)
+                              If OFFSET = "-N" ignore last N bytes 
+                              and search for voicedata backwards.
+        --random              Renata's Randomizer
+        --split               Save each single patch as a separate file
+        --select RANGE        Select RANGE to save (e.g. "2,4,7-12,18-32")
+        --sort                Sort patches by voicename (case-insensitive)
+        --sort2               Sort patches by voicename (case-sensitive)
+        --yamaha MODEL        Specify Yamaha synth MODEL for outfile:
+                              dx100, dx27s, dx27, dx21, tx81z, dx11, v2, wt11,
+                              ds55, ys100, ys200, tq5, b200, v50, vopm, reface
+
