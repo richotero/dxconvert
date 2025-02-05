@@ -1,9 +1,5 @@
-# DXConvert
-
-This is a GitHub mirror of Martin Tarenskeen's [DXConvert](http://dxconvert.martintarenskeen.nl/) utility, as it is released under the GNU GPL. I will try to keep this repository up to date with DXConvert; if it falls behind please open an issue.
-
-For the original README, see [README.txt](readme.txt).
-
-## Author Contact
-
-m.tarenskeenATkpnmail.nl
+This repository contains a copy of
+[Martin Tarenskeen's](mailto:m.tarenskeen@kpnmail.nl)
+[DXConvert and TXConvert utilities](http://dxconvert.martintarenskeen.nl).
+Refer to the original [README](README.txt), [CHANGES](CHANGES.txt), and
+[LICENSE](LICENSE.txt) files.
