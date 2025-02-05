@@ -511,7 +511,7 @@ def vmm2rdx(vmm):
     rdx[0x0d] = vcd[63] * (vcd[65] + 1)
     #Partmode = POLY, MONO-FULL, MONO-LGATO
     rdx[0x0e] = vcd[66] * 127 // 99 #Portamento = 0~127
-    rdx[0x0f] = vcd[64] + 64 #Pitchbend = 0x28~0x58 = -24~+24 = 0~48
+    rdx[0x0f] = vcd[64] + 0x40 #Pitchbend = 0x28 ~ 0x40 ~ 0x58 = -24 ~+24 = 0~48
 
     alg4 = vmm[40]&7
     ALG = alg(alg4, 0)[0]
@@ -1167,7 +1167,7 @@ def cleanrdx(rdx):
         rdx[i] = rdx[i] & 127
 
     rdx[0x0d] = min(rdx[0xd] & 3, 2) 
-    rdx[0x0f] = max(0x58, min(0x28, rdx[0x0f]))
+    rdx[0x0f] = max(0x28, min(0x58, rdx[0x0f]))
     rdx[0x10] = min(rdx[0x10] & 15, 11)
     rdx[0x11] = min(rdx[0x11] & 7, 6)
     for i in (0x19, 0x1a, 0x1b, 0x1c):

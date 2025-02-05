@@ -28,12 +28,6 @@ from argparse import ArgumentParser
 from glob import glob
 from DXconvert import TXC
 from DXconvert import dxcommon
-try:
-    import rtmidi
-    ENABLE_MIDI = True
-    del rtmidi
-except:
-    ENABLE_MIDI = False
 
 PROGRAMNAME = TXC.PROGRAMNAME
 PROGRAMVERSION = dxcommon.PROGRAMVERSION
@@ -52,10 +46,6 @@ def cli_main(argv=sys.argv):
     parser.add_argument('-c', '--channel', default=0, type=int, help='Midi channel (1~16)in SysEx header')
     parser.add_argument('-C', '--check', action='store_true', default=False, help='Check SysEx checksum before import') 
     parser.add_argument('-f', '--find', metavar='STRING', help='Search for STRING in patchnames')
-    if ENABLE_MIDI:
-        parser.add_argument('-mi', '--mid_in', help='select midiport MID_IN to receive data FROM synth when selecting a .req file')
-        parser.add_argument('-mo', '--mid_out', help='select midiport MID_OUT to send data TO synth when choosing "MIDI" as outfile')
-        parser.add_argument('-m', '--mid', help='use this option as a shortcut for "--mid_in MID_IN --mid_out MID_OUT", if MID_IN and MID_OUT have the same name MID')
     parser.add_argument('-n', '--nosplit', action='store_true', default=False, help="Don't split: save data in one file")
     parser.add_argument('-nd', '--nodupes', action='store_true', default=False, help='Remove duplicates')
     parser.add_argument('-nd2', '--nodupes2', action='store_true', default=False, help='Remove duplicates, also with different names')
@@ -83,36 +73,6 @@ def cli_main(argv=sys.argv):
     outfile = args.outfile
     outfile_ext = os.path.splitext(outfile)[1]
     outfile_dir = os.path.split(outfile)[0]
-
-    mid_in = ""
-    mid_out = ""
-    if ENABLE_MIDI:
-        mid_in = dxcommon.MID_IN
-        mid_out = dxcommon.MID_OUT
-        CFG = dxcommon.CFG
-        if os.getenv('MID_IN'):
-            mid_in = os.getenv('MID_IN')
-        mid_out = os.getenv('MID_OUT')
-        if os.path.exists(CFG):
-            with open(CFG, 'r') as f:
-                for line in f.readlines():
-                    l = line.split('=')
-                    if l[0].strip() == 'MID_IN':
-                        mid_in = l[1].strip()
-                    if l[0].strip() == 'MID_OUT':
-                        mid_out = l[1].strip()
-
-        if args.mid:
-            mid_in = args.mid
-            mid_out =  args.mid
-        if args.mid_in:
-            mid_in = args.mid_in
-        if args.mid_out:
-            mid_out = args.mid_out
-        if args.mid_in or args.mid_out:
-            with open(CFG, 'w') as f:
-                if mid_in: f.write('MID_IN = {}\n'.format(mid_in))
-                if mid_out: f.write('MID_OUT = {}\n'.format(mid_out))
 
     bc = args.breathcontrol
     bc2at = args.bc2at
@@ -158,7 +118,7 @@ def cli_main(argv=sys.argv):
     if args.split:
         split = 1
 
-    if nosplit or (outfile == "MIDI") or (outfile == os.devnull):
+    if nosplit or (outfile == os.devnull):
         split = sys.maxsize
         nosplit = True
 
@@ -173,7 +133,7 @@ def cli_main(argv=sys.argv):
             return 1
 
         if os.path.isfile(infile):
-            txdat, channel = TXC.read(infile, offset, check, yamaha, mid_in, mid_out)
+            txdat, channel = TXC.read(infile, offset, check, yamaha)
             txdata += txdat
 
     if ch != None:
@@ -309,7 +269,7 @@ def cli_main(argv=sys.argv):
                     if count>1:
                         Outfile = os.path.join(outfile_dir, outfile_name + "(" + str(count) + ")" + outfile_ext)
 
-                print (TXC.write(Outfile, txdata[64*i:64*(i+1)], channel, nosplit, 1, yamaha, mid_out))
+                print (TXC.write(Outfile, txdata[64*i:64*(i+1)], channel, nosplit, 1, yamaha))
         elif REFACE:
             for i in range(n):
                 outfile_name = dxcommon.list2string(txdata[150*i:150*i+10])
@@ -322,7 +282,7 @@ def cli_main(argv=sys.argv):
                     if count>1:
                         Outfile = os.path.join(outfile_dir, outfile_name + "(" + str(count) + ")" + outfile_ext)
                 
-                print (TXC.write(Outfile, txdata[150*i:150*(i+1)], channel, nosplit, 1, yamaha, mid_out))
+                print (TXC.write(Outfile, txdata[150*i:150*(i+1)], channel, nosplit, 1, yamaha))
         else:
             for i in range(n):
                 outfile_name = dxcommon.list2string(txdata[128*i+57:128*i+67])
@@ -335,9 +295,9 @@ def cli_main(argv=sys.argv):
                     if count>1:
                         Outfile = os.path.join(outfile_dir, outfile_name + "(" + str(count) + ")" + outfile_ext)
                 
-                print (TXC.write(Outfile, txdata[128*i:128*(i+1)], channel, nosplit, 1, yamaha, mid_out))
+                print (TXC.write(Outfile, txdata[128*i:128*(i+1)], channel, nosplit, 1, yamaha))
     else:
-        print (TXC.write(outfile, txdata, channel, nosplit, split, yamaha, mid_out))
+        print (TXC.write(outfile, txdata, channel, nosplit, split, yamaha))
 
     return 0
 

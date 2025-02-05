@@ -1,4 +1,5 @@
 
+from . import rym2612
 from . import dx7
 from . import dxcommon
 from math import log
@@ -260,7 +261,7 @@ pr = (1, 2, 4, 5, 6, 7, 8, 10, 12, 13,
 
 #FX V50 YS200
 #reverbtime seconds
-reverbtime = (0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9,
+reverbtime = (0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9,
         2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8,
         4.0, 4.5, 5.0, 5.5, 6.0, 6.5,
         7.0, 8.0, 9.0, 10)
@@ -276,6 +277,10 @@ doublertime = [0.1]
 for i in range(1, 101):
     doublertime.append(0.5*i)
 doublertime = tuple(doublertime)
+
+#HPF, LPF
+hpfreq = ("Thru", "160 Hz", "250 KHz", "315 Hz", "400 Hz", "500 Hz", "630 Hz", "800 Hz", "1 Khz")
+lpfreq = ("1.25 KHz", "1.6KHz", "2 KHz", "2.5 KHz", "3.15 KHz", "4 Khz", "5 KHz", "6 KHz", "7 KHz", "8 KHz", "9 KHz", "10 KHz", "11 KHz", "12 KHz", "Thru")
 
 def vcd2vmm(vcd=initvcd(), acd=initacd(), acd2=initacd2(), acd3=initacd3(), efeds=initefeds(), delay=initdelay()):
     vmm = [0]*128
@@ -381,6 +386,8 @@ def freq_4op_dx21(coarse4op, fine4op):
 
 def tx81z_dx21(vmm):
     vcd, acd, acd2, acd3, efeds, delay = vmm2vcd(vmm)
+    
+    #no fixed frequencies and no fine ratio (ACED) used
     if (acd[17] + acd[7] + acd[12] + acd[2] + acd[15] + acd[5] + acd[10] + acd[0]) == 0:
         return vmm, 0
     
@@ -796,6 +803,9 @@ def vmm2freq(vmm, op):
     fix = acd[(15,5,10,0)[op]]
     fixrg = acd[(16,6,11,1)[op]]
     fixrgm = acd2[7-op]
+   
+    #rym2612.testvmm(vmm, rym2612.vmm2rym(vmm))
+
     if fix:
         f = "{}f".format(round(fix_4op(fixrgm, fixrg, crs, fin), 2))
     else:
@@ -816,7 +826,6 @@ def vmm2txt(vmm, yamaha='tx81z'):
     s = 'VCED parameters:      VOICE NAME = "{}"\n'.format(voicename(vmm))
     s += '====================================================\n'
     s += 'OP1      OP2      OP3      OP4'.rjust(52)+'\n'
-    #s += 'Frequency      : {:>8} {:>8} {:>8} {:>8}\n'.format(vmm2freq(vmm, 0), vmm2freq(vmm, 1), vmm2freq(vmm, 2), vmm2freq(vmm, 3))
     Oo = ('Off', 'On')
     for i in range(13):
         if vcdn[i] == 'DET':
@@ -913,15 +922,25 @@ def vmm2txt(vmm, yamaha='tx81z'):
     if yamaha in ('v50', 'all'):
         s += 'ACED3 parameters\n'
         s += '================\n'
-        acd3n = ('EFCT SEL', 'BALANCE', 'OUT LEVEL', 'STEREO MIX', 'EFCT param1', 'EFCT param2', 'EFCT param3')
-        for i in range(7):
-            if acd3n[i] == 'EFCT SEL':
-                s += '{:14} : {:>8}\n'.format(acd3n[i], fx[acd3[i]])
-            elif acd3n[i] in ('BALANCE', 'OUT LEVEL'):
-                s += '{:14} : {:>7}%\n'.format(acd3n[i], acd3[i])
-            else:
-                s += '{:14} : {:>8}\n'.format(acd3n[i], acd3[i])
-        s += '\n'
+#        acd3n = ('EFCT SEL', 'BALANCE', 'OUT LEVEL', 'STEREO MIX', 'EFCT param1', 'EFCT param2', 'EFCT param3')
+#        for i in range(7):
+#            if acd3n[i] == 'EFCT SEL'
+#                s += '{:14} : {:>8}\n'.format(acd3n[i], fx[acd3[i]])
+#            elif acd3n[i] in ('BALANCE', 'OUT LEVEL'):
+#                s += '{:14} : {:>7}%\n'.format(acd3n[i], acd3[i])
+#            elif acd3n[i] == 'STEREO MIX':
+#                s += '{:14} : {:>8}\n'.format(acd3n[i], ("Off", "On")[acd3[i]])
+#            else:
+#                s += '{:14} : {:>8}\n'.format(acd3n[i], acd3[i])
+#       s += '\n'
+        s += '{:14} : {}\n'.format("EFCT SEL", v50fx(vmm)[0])
+        s += '{:14} : {}%\n'.format("BALANCE", acd3[1])
+        s += '{:14} : {}%\n'.format("OUT LEVEL", acd3[2])
+        s += '{:14} : {}\n'.format("STEREO MIX", ("Off", "On")[acd3[3]])
+        s += '{}\n'.format(v50fx(vmm)[1])
+        s += '{}\n'.format(v50fx(vmm)[2])
+        s += '{}\n'.format(v50fx(vmm)[3])
+        s += "\n"
 
     if yamaha in ('ys100', 'ys200', 'tq5', 'b200', 'all'):
         s += 'EFEDS parameters\n'
@@ -929,22 +948,127 @@ def vmm2txt(vmm, yamaha='tx81z'):
         efedsn = ('EFFECT PRESET', 'EFFECT TIME', 'EFFECT BALANCE')
         for i in range(len(efeds)):
             if efedsn[i] == 'EFFECT PRESET':
-                s += '{:14} : {:>8}\n'.format(efedsn[i], fx[efeds[i]])
+                s += '{:14} : {}\n'.format(efedsn[i], fx[efeds[i]])
             elif efedsn[i] == 'EFFECT BALANCE':
-                s += '{:14} : {:>7}%\n'.format(efedsn[i], efeds[i])
+                s += '{:14} : {}%\n'.format(efedsn[i], efeds[i])
             else:
-                s += '{:14} : {:>8}\n'.format(efedsn[i], efeds[i])
+                s += '{}\n'.format(ysfx(vmm))
         s += '\n'
 
     if yamaha in ('ds55', 'all'):
         s += 'DELAY parameters\n'
         s += '================\n'
-        s += 'Dly Off/On     : {:>8}\n'.format(Oo[delay[0]])
-        s += 'Dly Short/Long : {:>8}\n'.format(('Short', 'Long')[delay[1]])
+        s += 'Dly Off/On     : {}\n'.format(Oo[delay[0]])
+        s += 'Dly Short/Long : {}\n\n'.format(('Short', 'Long')[delay[1]])
     S=[]
     for k in s:
         S.append(ord(k))
     return S
+
+def ysfx(vmm):
+    fx = vmm[91]
+    s0 = ('Off', 'Reverb Hall', 'Reverb Room', 'Reverb Plate',
+            'Delay', 'Delay L/R', 'Stereo Echo', 'Distortion Rev.', 
+            'Distortion Echo', 'Gate Reverb', 'Reverse Gate')[fx]
+    
+    if fx == 0:
+        s1 = "--"
+    elif fx in (1, 2, 3):
+        s1 = "{:14} : {} sec".format("EFFECT TIME", reverbtime[vmm[92]])
+    elif fx == (4, 5, 6):
+        s1 = "{:14} : {} ms".format("EFFECT TIME", delaytime[vmm[92]])
+    elif fx == 7:
+        s1 = "{:14} : {} sec".format("EFFECT TIME", reverbtime[vmm[92]])
+    elif fx == 8:
+        s1 = "{:14} : {} ms".format("EFFECT TIME", delaytime[vmm[92]])
+    elif fx in (9, 10):
+        s1 = "{:14} : {}".format("EFFECT SIZE", 0.5 + 0.1*vmm[92])
+    return s1
+
+def v50fx(vmm):
+    #vmm[94] = EFFECT SELECT
+    #vmm[98], [99], [100] = p1, p2, p3
+    fx = vmm[94]
+    s0 = ('Off', 'Reverb Hall', 'Reverb Room', 'Reverb Plate',
+            'Delay', 'Delay L/R', 'Stereo Echo', 'Distortion Rev.', 
+            'Distortion Echo', 'Gate Reverb', 'Reverse Gate', 'Early Ref',
+            'Tone Control', 'Delay & Reverb', 'Delay L/R & Rev.', 'Dist. & Delay',
+            'Church', 'Club', 'Stage', 'Bath Room',
+            'Metal', 'Tunnel', 'Doubler 1', 'Doubler 2',
+            'Feed Back Gate', 'F. Back Reverse', 'Feed Back E/R', 'Delay & Tone1',
+            'Dly L/R & Tone1', 'Tone Control 2', 'Delay & Tone2', 'Dly L/R & Tone2')[fx]
+    
+    if fx == 0:
+        s1 = "--"
+        s2 = "--"
+        s3 = "--"
+    elif fx in (1, 2, 3, 16, 17, 18, 19, 20):
+        s1 = "{:14} : {} sec".format("Time", reverbtime[vmm[98]])
+        s2 = "{:14} : {}".format("LPF", lpfreq[vmm[99]])
+        s3 = "{:14} : {} ms".format("Delay", doublertime[vmm[100]])
+    elif fx == 4:
+        s1 = "{:14} : {} ms".format("Time", delaytime[vmm[98]])
+        s2 = "{:14} : {} ms".format("FB Delay", delaytime[vmm[99]])
+        s3 = "{:14} : {} %".format("FB Gain", vmm[100])
+    elif fx in (5, 6):
+        s1 = "{:14} : {} ms".format("Lch Dly", delaytime[vmm[98]])
+        s2 = "{:14} : {} ms".format("Rch Dly", delaytime[vmm[99]])
+        s3 = "{:14} : {} %".format("FB Gain", vmm[100])
+    elif fx == 7:
+        s1 = "{:14} : {} sec".format("Time", reverbtime[vmm[98]])
+        s2 = "{:14} : {} %".format("Dist.", vmm[99])
+        s3 = "{:14} : {} %".format("Reverb", vmm[100])
+    elif fx in (8, 15):
+        s1 = "{:14} : {} ms".format("Time", delaytime[vmm[98]])
+        s2 = "{:14} : {} %".format("FB Gain", vmm[99])
+        s3 = "{:14} : {} %".format("Dist.", vmm[100])
+    elif fx in (9, 10, 11):
+        s1 = "{:14} : {}".format("Size", 0.5 + 0.1*vmm[98])
+        s2 = "{:14} : {}".format("LPF", lpfreq[vmm[99]])
+        s3 = "{:14} : {} ms".format("Delay", doublertime[vmm[100]])
+    elif fx == 12:
+        s1 = "{:14} : {} dB".format("Low", vmm[98] - 12)
+        s2 = "{:14} : {} dB".format("Middle", vmm[99] - 12)
+        s3 = "{:14} : {} dB".format("High", vmm[100] - 12)
+    elif fx == 13:
+        s1 = "{:14} : {} sec".format("RevTime", reverbtime[vmm[98]])
+        s2 = "{:14} : {} ms".format("Delay", delaytime[vmm[99]])
+        s3 = "{:14} : {} %".format("FB Gain", vmm[100])
+    elif fx == 14:
+        s1 = "{:14} : {} sec".format("RevTime", reverbtime[vmm[98]])
+        s2 = "{:14} : {} ms".format("Lch Dly", delaytime[vmm[99]])
+        s3 = "{:14} : {} ms".format("Rch Dly", delaytime[vmm[100]])
+    elif fx == 21:
+        s1 = "{:14} : {} s".format("RevTime", reverbtime[vmm[98]])
+        s2 = "{:14} : {} ms".format("Delay", delaytime[vmm[99]])
+        s3 = "{:14} : {} %".format("FB Gain", vmm[100])
+    elif fx == 22:
+        s1 = "{:14} : {} ms".format("DlyTime", doublertime[vmm[98]])
+        s2 = "{:14} : {}".format("HPF", hpfreq[vmm[99]])
+        s3 = "{:14} : {}".format("LPF", lpfreq[vmm[100]])
+    elif fx == 23:
+        s1 = "{:14} : {} ms".format("Lch Dly", doublertime[vmm[98]])
+        s2 = "{:14} : {} ms".format("Rch Dly", doublertime[vmm[99]])
+        s3 = "{:14} : {}".format("LPF", lpfreq[vmm[100]])
+    elif fx in (24, 25, 26):
+        s1 = "{:14} : {}".format("Size", 0.5 + 0.1*vmm[98])
+        s2 = "{:14} : {}".format("LPF", lpfreq[vmm[99]])
+        s3 = "{:14} : {} %".format("FB Gain", vmm[100])
+    elif fx in (27, 28, 30, 31):
+        s1 = "{:14} : {}".format("Bril.", vmm[98])
+        s2 = "{:14} : {} ms".format("Delay", delaytime[vmm[99]])
+        s3 = "{:14} : {} %".format("FB Gain", vmm[100])
+    elif fx == 29:
+        s1 = "{:14} : {}".format("HPF", hpfreq[vmm[98]])
+        s2 = "{:14} : {} dB".format("Middle", vmm[99] - 12)
+        s3 = "{:14} : {}".format("LPF", lpfreq[vmm[100]])
+    elif fx == 32:
+        s1 = "{:14} : {} %".format("Dist.", vmm[98])
+        s2 = "{:14} : {}".format("HPF", hpfreq[vmm[99]])
+        s3 = "{:14} : {}".format("LPF", lpfreq[vmm[100]])
+
+    return s0, s1, s2, s3
+
 
 def v50_ys(vmm):
     if (vmm[91] == 0) and (vmm[94] != 0):

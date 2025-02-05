@@ -88,7 +88,7 @@ def vopm2fb01(vopm):
     ALG = vopm[27]&7
     fb[12] = ((vopm[26]&7)<<3) + ALG # FBL, ALG
     fb[13] = (vopm[28]&3) + ((vopm[29]&3)<<4) # AMS, PMS
-    fb[14] = (vopm[23]&3)<<5
+    fb[14] = (vopm[23]&3)<<5 #LFW
     fb[15] = 0 #Transpose
     for op in range(4):
         if ((vopm[30]>>(op+3))&1) == 0:

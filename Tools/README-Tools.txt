@@ -59,6 +59,15 @@ v50convert.py:
 
 A tool to convert between V50 floppy disk files (*.Ixx, etc.) and SysEx files.
 
+rymconvert.py:
+
+A tool to convert 4-op FM patches from Yamaha to *.rym2612 patchfiles that can be loaded by
+the "RYM2612 Iconic FM Synthesizer" VST plugin from Inphonik. This tool requires the DXconvert
+python library installed in your PYTHONPATH. On my Linux system the DXconvert directory is 
+currently installed in ~/.local/lib/python3.13/site-packages/ but this may vary depending on
+your Python version and OS.
+Rymconvert.py can import any fileformat that is supported by TXconvert.
+
 -- 
 
 MT

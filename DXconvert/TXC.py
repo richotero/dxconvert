@@ -43,6 +43,8 @@ from . import korg
 from . import reface
 from . import bohmorla
 from . import korgz3
+from . import elka
+from . import rym2612
 
 try: 
     range = xrange
@@ -57,8 +59,6 @@ ACED2 = fourop.ACED2
 ACED3 = fourop.ACED3
 EFEDS = fourop.EFEDS
 DELAY = fourop.DELAY
-MID_IN = dxcommon.MID_IN
-MID_OUT = dxcommon.MID_OUT
 
 BN4NR=[]
 for b in range(4):
@@ -71,7 +71,7 @@ for i in range(10):
 
 ########## FILE INPORT/EXPORT #########
 
-def read(infile, offset='0', check=False, yamaha='tx81z', mid_in=MID_IN, mid_out=MID_OUT):
+def read(infile, offset='0', check=False, yamaha='tx81z'):
     if offset.startswith('-'):
         datasize = os.path.getsize(infile) + int(offset, 0)
         if yamaha == "refacedx":
@@ -96,7 +96,7 @@ def read(infile, offset='0', check=False, yamaha='tx81z', mid_in=MID_IN, mid_out
                     tmp = mkstemp()[1]
                     with open(tmp, 'wb') as f:
                         f.write(d)
-                    txdat, channel = read2(mid_in, mid_out, tmp, offset, check)
+                    txdat, channel = read2(tmp, offset, check)
                     os.remove(tmp)
                     txdata += txdat
                     print ("\t{}".format(n))
@@ -104,11 +104,11 @@ def read(infile, offset='0', check=False, yamaha='tx81z', mid_in=MID_IN, mid_out
                     print ("! only {} from {} files in zip were read".format(zflist.index(n)+1, len(zflist)))
                     break
     else:
-        txdata, channel = read2(mid_in, mid_out, infile, offset, check, yamaha)
+        txdata, channel = read2(infile, offset, check, yamaha)
     return txdata, channel
 
 
-def read2(mid_in, mid_out, infile, offset, check=False, yamaha='tx81z'):
+def read2(infile, offset, check=False, yamaha='tx81z'):
     if not os.path.exists(infile):
         print ("{}: File not found.".format(infile))
         sys.exit(1)
@@ -124,11 +124,6 @@ def read2(mid_in, mid_out, infile, offset, check=False, yamaha='tx81z'):
         REFACE, FB01, TX = False, True, False
     elif yamaha == 'refacedx':
         REFACE, FB01, TX = True, False, False
-
-    #Dumprequest
-    if dxcommon.ENABLE_MIDI:
-        if ext == ".req":  # and data[0] == 0xf0:
-            data, size = dxcommon.req2data(data, mid_in, mid_out)
 
     #check if file is a MIDI file
     if data[0:4] == [0x4d, 0x54, 0x68, 0x64]: #"MThd"
@@ -230,7 +225,7 @@ def read2(mid_in, mid_out, infile, offset, check=False, yamaha='tx81z'):
 
     # Yamaha FB01 RAM and ROM voicebanks
     for i in range(size-6360):
-        if data[i]==0xf0 and data[i+1]==0x43 and data[i+2]==0x75 and data[i+3]<=0x0f and data[i+6362]==0xf7:
+        if data[i]==0xf0 and data[i+1]==0x43 and data[i+2]==0x75 and data[i+3]<=0x0f: #and data[i+6362]==0xf7:
             for p in range(48):
                 fb=[]
                 if (check==False) or (dxcommon.checksum(data[i+76+131*p:i+76+131*p+128])==data[i+76+131*p+128]):
@@ -241,7 +236,7 @@ def read2(mid_in, mid_out, infile, offset, check=False, yamaha='tx81z'):
 
     # Yamaha FB01 voice bank 0
     for i in range(size-6357):
-        if data[i]==0xf0 and data[i+1]==0x43 and data[i+2]<=0x0f and data[i+3]==0x0c and data[i+6359]==0xf7:
+        if data[i]==0xf0 and data[i+1]==0x43 and data[i+2]<=0x0f and data[i+3]==0x0c: #and data[i+6359]==0xf7:
             for p in range(48):
                 fb=[]
                 if (check==False) or (dxcommon.checksum(data[i+73+131*p:i+73+131*p+128])==data[i+73+131*p+128]):
@@ -251,7 +246,7 @@ def read2(mid_in, mid_out, infile, offset, check=False, yamaha='tx81z'):
 
     # Yamaha FB01 instrument 1~8
     for i in range(size-136):
-        if data[i]==0xf0 and data[i+1]==0x43 and data[i+2]==0x75 and data[i+3]<=0x0f and (data[i+4]&8) and data[i+138]==0xf7:
+        if data[i]==0xf0 and data[i+1]==0x43 and data[i+2]==0x75 and data[i+3]<=0x0f and (data[i+4]&8): #and data[i+138]==0xf7:
             fb=[]
             if (check==False) or (dxcommon.checksum(data[i+9:i+9+128])==data[i+9+128]):
                 for n in range(64):
@@ -394,6 +389,7 @@ def read2(mid_in, mid_out, infile, offset, check=False, yamaha='tx81z'):
                 rdxdata += reface.korg2rdx(korgbnk, ds8)
             else:
                 txdata += korg.vce2vmm(korgdat, ds8)
+                #txdata += korg.bnk2vmm(korgdat, ds8)
 
     # KORG Z3 all sound
     for i in range(size-12800):
@@ -406,6 +402,19 @@ def read2(mid_in, mid_out, infile, offset, check=False, yamaha='tx81z'):
                 else:
                     #print(korgz3.z3text(data[5+100*p:105+100*p], p))
                     txdata += korgz3.z3_to_vmm(data[5+100*p:105+100*p])
+
+    # ELKA EK44 EM44
+    for i in range(size - 146):
+        if data[i]==0xf0 and data[i+1]==0x2f and (data[i+2] & 0xf0)==0x40 and data[i+3]==0x09 and (data[i+4] in range(0x40, 0x60)) and data[i+149]==0xf7:
+            name = dxcommon.list2string(data[i+140:i+148])
+            print("!! ELKA EM 44 import (experimental)")
+            txdata += elka.ek2vmm(data[i+5:i+5+67], name + " 1")
+            txdata += elka.ek2vmm(data[i+5+67:i+5+2*67], name + " 2")
+        elif data[i]==0xf0 and data[i+1]==0x2f and (data[i+2] & 0xf0)==0x40 and data[i+3]==0x09 and (data[i+4] in range(0x40, 0x60)) and data[i+150]==0xf7:
+            name = dxcommon.list2string(data[i+140:i+149])
+            print("!! ELKA EK 44 import (experimental)")
+            txdata += elka.ek2vmm(data[i+5:i+5+67], name + "1")
+            txdata += elka.ek2vmm(data[i+5+67:i+5+2*67], name + "2")
 
     # WAV data with datacassette dump
     if ext == '.wav':
@@ -593,18 +602,45 @@ def read2(mid_in, mid_out, infile, offset, check=False, yamaha='tx81z'):
                 tx[57:67] = data[76*i:76*i+10]
                 txdata += tx
 
+    # RYM2612
+    elif ext == ".rym2612":
+        print("!! Inphonik RYM2612 conversion")
+        with open(infile) as f:
+            xml = f.read()
+            rym = rym2612.xml2rym(xml)
+        if FB01:
+            fbdata += rym2612.rym2fb(rym)
+        elif REFACE:
+            rdxdata += rym2612.rym2rdx(rym)
+        else:
+            txdata += rym2612.rym2vmm(rym)
+
     # TFM Music Maker instrument files
     elif ext == ".tfi" and size == 42:
         print("!! TFM Music Maker instrument (.tfi) conversion")
         if FB01:
-            fbdata += fb01.tfm2fb(data, infile)
+            fbdata += fb01.tfi2fb(data, infile)
         else:
-            fbdat = fb01.tfm2fb(data, infile)
+            fbdat = fb01.tfi2fb(data, infile)
             txdat = fb01.fb2vmm(fbdat)
             vname = os.path.basename(infile)[:-4] + "          "
             vname = vname[:10]
             txdat[57:67] = dxcommon.string2list(vname)
             txdata += txdat
+
+    # VGI Music Maker
+    elif ext == ".vgi" and size == 43:
+        print("!! VGM Music Maker instrument (.vgi) conversion")
+        if FB01:
+            fbdata += fb01.vgi2fb(data, infile)
+        else:
+            fbdat = fb01.vgi2fb(data, infile)
+            txdat = fb01.fb2vmm(fbdat)
+            vname = os.path.basename(infile)[:-4] + "          "
+            vname = vname[:10]
+            txdat[57:67] = dxcommon.string2list(vname)
+            txdata += txdat
+
     # Bryan Sutula TX81Z/DX11 Voice Archive
     elif data[:26] == dxcommon.string2list("* TX81Z/DX11 Voice Archive"):
         hx = "0123456789abcdef"
@@ -746,7 +782,7 @@ def read2(mid_in, mid_out, infile, offset, check=False, yamaha='tx81z'):
 
 ###### TX WRITE STUFF #####
 
-def write_rdx(outfile, rdxdata, channel, nosplit, split=32, yamaha='refacedx', mid_out='MID_OUT'):
+def write_rdx(outfile, rdxdata, channel, nosplit, split=32, yamaha='refacedx'):
     if outfile == os.devnull:
         nosplit = True
     ext = os.path.splitext(outfile)[1].lower()
@@ -756,9 +792,6 @@ def write_rdx(outfile, rdxdata, channel, nosplit, split=32, yamaha='refacedx', m
     mid = False
     if ext.lower() in (".mid", ".midi"):
         mid = True
-    if dxcommon.ENABLE_MIDI:
-        if outfile[-4:] == "MIDI":
-            nosplit = True 
  
     if len(rdxdata)>150:
         patchcount = len(rdxdata)//150
@@ -782,7 +815,7 @@ def write_rdx(outfile, rdxdata, channel, nosplit, split=32, yamaha='refacedx', m
             if patchcount == 1:
                 dat += reface.rdx2syx(rdxdata[150*pp:150*(pp+1)], channel, 0)
             else:
-                dat += reface.rdx2syx(rdxdata[150*pp:150*(pp+1)], channel, pp+1)
+                dat += reface.rdx2syx(rdxdata[150*pp:150*(pp+1)], channel, (pp%32)+1)
 
     if nosplit==False:
         if mid:
@@ -790,19 +823,10 @@ def write_rdx(outfile, rdxdata, channel, nosplit, split=32, yamaha='refacedx', m
         with open(outfile, 'wb') as f:
             array.array('B', dat).tofile(f)
 
-    if nosplit==True:
-        if mid:
-            dat = syxmidi.syx2mid(dat)
-        with open(outfile, 'wb') as f:
-            array.array('B', dat).tofile(f)
-
-    if dxcommon.ENABLE_MIDI:
-        if outfile[-4:] == "MIDI":
-            dxcommon.data2midi(dat, mid_out)
 
     return "Ready. {} Patch(es) written to output file(s)".format(patchcount)
 
-def write_fb(outfile, fbdata, channel, nosplit, split=48, yamaha='fb01', mid_out='MID_OUT'):
+def write_fb(outfile, fbdata, channel, nosplit, split=48, yamaha='fb01'):
     if outfile == os.devnull:
         nosplit = True
     FB01 = True
@@ -816,9 +840,6 @@ def write_fb(outfile, fbdata, channel, nosplit, split=48, yamaha='fb01', mid_out
     mid = False
     if ext.lower() in (".mid", ".midi"):
         mid = True
-    if dxcommon.ENABLE_MIDI:
-        if outfile[-4:] == "MIDI":
-            nosplit = True 
  
     if len(fbdata)>64:
         patchcount = len(fbdata)//64
@@ -881,14 +902,10 @@ def write_fb(outfile, fbdata, channel, nosplit, split=48, yamaha='fb01', mid_out
         with open(outfile, 'wb') as f:
             array.array('B', dat).tofile(f)
 
-    if dxcommon.ENABLE_MIDI:
-        if outfile[-4:] == "MIDI":
-            dxcommon.data2midi(dat, mid_out)
-
     return "Ready. {} Patch(es) written to output file(s)".format(patchcount)
 
 
-def write(outfile, txdata, channel=0, nosplit=False, split=32, yamaha='tx81z', mid_out='MID_OUT'):
+def write(outfile, txdata, channel=0, nosplit=False, split=32, yamaha='tx81z'):
     if outfile == os.devnull:
         nosplit = True
     ext = os.path.splitext(outfile)[1]
@@ -899,9 +916,9 @@ def write(outfile, txdata, channel=0, nosplit=False, split=32, yamaha='tx81z', m
         yamaha = 'fb01'
         if split !=1: split = 48
     if yamaha in ('fb01', 'vopm'):
-        return write_fb(outfile, txdata, channel, nosplit, split, yamaha, mid_out)
+        return write_fb(outfile, txdata, channel, nosplit, split, yamaha)
     if yamaha == 'refacedx':
-        return write_rdx(outfile, txdata, channel, nosplit, split, yamaha, mid_out)
+        return write_rdx(outfile, txdata, channel, nosplit, split, yamaha)
 
     basename = os.path.split(outfile)[1]
     basename = os.path.splitext(basename)[0]
@@ -910,9 +927,6 @@ def write(outfile, txdata, channel=0, nosplit=False, split=32, yamaha='tx81z', m
     mid = False
     if ext.lower() in (".mid", ".midi"):
         mid = True
-    if dxcommon.ENABLE_MIDI:
-        if outfile[-4:] == "MIDI":
-            nosplit = True 
  
     if len(txdata)>128:
         patchcount = len(txdata)//128
@@ -926,7 +940,7 @@ def write(outfile, txdata, channel=0, nosplit=False, split=32, yamaha='tx81z', m
         nosplit = True
 
     elif patchcount>1:
-        if patchcount <= 32:
+        if patchcount < 32:
             split = 32
         txdat = []
         txrange = len(txdata)/float(split*128)
@@ -1069,9 +1083,6 @@ def write(outfile, txdata, channel=0, nosplit=False, split=32, yamaha='tx81z', m
         with open(outfile, 'wb') as f:
             array.array('B', dat).tofile(f)
 
-    if dxcommon.ENABLE_MIDI:
-        if outfile[-4:] == "MIDI":
-            dxcommon.data2midi(dat, mid_out)
     return "Ready. {} Patch(es) written to output file(s)".format(len(txdata)//128)
 
 def tx2list(txdata):
@@ -1124,7 +1135,7 @@ def rdxsort(rdxdata, casesens=False):
             L.sort()
         else:
             for i in range(len(L)):
-                L[i] = dxcommon.list2string(L[i])
+                L[i] = dxcommon.list2str(L[i])
             L.sort(key=str.lower)
             for i in range(len(L)):
                 L[i] = dxcommon.string2list(L[i])
@@ -1149,7 +1160,7 @@ def txsort(txdata, casesens=False):
             L.sort()
         else:
             for i in range(len(L)):
-                L[i] = dxcommon.list2string(L[i])
+                L[i] = dxcommon.list2str(L[i])
             L.sort(key=str.lower)
             for i in range(len(L)):
                 L[i] = dxcommon.string2list(L[i])
@@ -1168,7 +1179,7 @@ def fbsort(fbdata, casesens=True):
             L.sort()
         else:
             for i in range(len(L)):
-                L[i] = dxcommon.list2string(L[i])
+                L[i] = dxcommon.list2str(L[i])
             L.sort(key=str.lower)
             for i in range(len(L)):
                 L[i] = dxcommon.string2list(L[i])
