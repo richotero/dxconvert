@@ -28,12 +28,7 @@ from argparse import ArgumentParser
 from glob import glob
 from DXconvert import DXC
 from DXconvert import dxcommon
-try:
-    import rtmidi
-    ENABLE_MIDI = True
-    del rtmidi
-except:
-    ENABLE_MIDI = False
+
 PROGRAMNAME = DXC.PROGRAMNAME
 PROGRAMVERSION = dxcommon.PROGRAMVERSION
 PROGRAMDATE = dxcommon.PROGRAMDATE
@@ -54,14 +49,11 @@ def cli_main(argv=sys.argv):
     parser.add_argument('-f', '--find', metavar='STRING', help='Search for STRING in patchnames')
     parser.add_argument('-fc1', '--fc1', action='store_false', default=True, help='Do NOT use FC1 foot controller data')
     parser.add_argument('-fc2', '--fc2', action='store_false', default=True, help='Do NOT use FC2 foot controller data')
-    if ENABLE_MIDI:
-        parser.add_argument('-mi', '--mid_in', help='select midiport MID_IN to receive data FROM synth when selecting a .req file')
-        parser.add_argument('-mo', '--mid_out', help='select midiport MID_OUT to send data TO synth when choosing "MIDI" as outfile')
-        parser.add_argument('-m', '--mid', help='use this option as a shortcut for "--mid_in MID_IN --mid_out MID_OUT", if MID_IN and MID_OUT have the same name MID')
     parser.add_argument('-n', '--nosplit', action='store_true', default=False, help="Don't split: save data in one file")
     parser.add_argument('-nd', '--nodupes', action='store_true', default=False, help='Remove duplicates')
     parser.add_argument('-nd2', '--nodupes2', action='store_true', default=False, help='Remove duplicates, also with different names')
     parser.add_argument('-ns', '--nosilence', action='store_true', default=False, help='Remove patches that produce no sound')
+    parser.add_argument('-no4', '--no4op', action='store_true', default=False, help="Remove patches that use only 4 operators (or less)")
     parser.add_argument('-o', '--offset', default='0', help="Ignore first/last (+/-) OFFSET bytes in input file(s)")
     parser.add_argument('-r', '--random', action='store_true', default=False, help="Renata's Randomizer") 
     parser.add_argument('-sp', '--split', action='store_true', help="save each single patch as a separate file")
@@ -87,37 +79,6 @@ def cli_main(argv=sys.argv):
     outfile_ext = os.path.splitext(outfile)[1]
     outfile_dir = os.path.split(outfile)[0]
 
-    mid_in = ""
-    mid_out = ""
-    if ENABLE_MIDI:
-        mid_in = dxcommon.MID_IN
-        mid_out = dxcommon.MID_OUT
-        CFG = dxcommon.CFG
-        if os.getenv('MID_IN'):
-            mid_in = os.getenv('MID_IN')
-        mid_out = os.getenv('MID_OUT')
-        if os.path.exists(CFG):
-            with open(CFG, 'r') as f:
-                for line in f.readlines():
-                    l = line.split('=')
-                    if l[0].strip() == 'MID_IN':
-                        mid_in = l[1].strip()
-                    if l[0].strip() == 'MID_OUT':
-                        mid_out = l[1].strip()
-        if args.mid:
-            mid_in = args.mid
-            mid_out =  args.mid
-        if args.mid_in:
-            mid_in = args.mid_in
-        if args.mid_out:
-            mid_out = args.mid_out
-        if args.mid_in or args.mid_out:
-            with open(CFG, 'w') as f:
-                if mid_in:
-                    f.write('MID_IN = {}\n'.format(mid_in))
-                if mid_out:
-                    f.write('MID_OUT = {}\n'.format(mid_out))
-
     brightness = args.brightness
     dx72 = args.dx72
     TX7 = args.tx7
@@ -133,6 +94,7 @@ def cli_main(argv=sys.argv):
     nodupes = args.nodupes
     nodupes2 = args.nodupes2
     nosilence = args.nosilence
+    no4op = args.no4op
     offset = args.offset
     bc2at = args.bc2at
     bc = args.nobreathcontrol
@@ -154,7 +116,7 @@ def cli_main(argv=sys.argv):
             return 1
 
         if os.path.isfile(infile):
-            dx7dat, dx72dat, tx7dat, channel = DXC.read(infile, offset, check, mid_in, mid_out)
+            dx7dat, dx72dat, tx7dat, channel = DXC.read(infile, offset, check)
             dx7data += dx7dat
             dx72data += dx72dat
             tx7data += tx7dat
@@ -192,7 +154,10 @@ def cli_main(argv=sys.argv):
 
     if nosilence:
         dx7data, dx72data, tx7data = DXC.dxnosilence(dx7data, dx72data, tx7data)
-    
+
+    if no4op:
+        dx7data, dx72data, tx7data = DXC.dxno4op(dx7data, dx72data, tx7data)
+
     if sort:
         dx7data, dx72data, tx7data = DXC.dxsort(dx7data, dx72data, tx7data, dx72, TX7, False)
     if sort2:
@@ -229,10 +194,10 @@ def cli_main(argv=sys.argv):
                 if count>1:
                     Outfile = os.path.join(outfile_dir, outfile_name + "(" + str(count) + ")" + outfile_ext)
 
-            print (DXC.write(Outfile, dx7data[128*i:128*(i+1)], dx72data[35*i:35*(i+1)], tx7data[64*i:64*(i+1)], dx72, TX7, channel, nosplit, mid_out))
+            print (DXC.write(Outfile, dx7data[128*i:128*(i+1)], dx72data[35*i:35*(i+1)], tx7data[64*i:64*(i+1)], dx72, TX7, channel, nosplit))
 
     else:
-        print(DXC.write(outfile, dx7data, dx72data, tx7data, dx72, TX7, channel, nosplit, mid_out))
+        print(DXC.write(outfile, dx7data, dx72data, tx7data, dx72, TX7, channel, nosplit))
 
     return 0
 

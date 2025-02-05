@@ -43,6 +43,8 @@ from . import korg
 from . import reface
 from . import bohmorla
 from . import korgz3
+from . import elka
+from . import rym2612
 
 try:
     range = xrange
@@ -52,12 +54,10 @@ except NameError:
 PROGRAMNAME="DXconvert"
 PROGRAMVERSION=dxcommon.PROGRAMVERSION
 PROGRAMDATE=dxcommon.PROGRAMDATE
-MID_IN=dxcommon.MID_IN
-MID_OUT=dxcommon.MID_OUT
 
 ########## FILE INPORT/EXPORT #########
 
-def read(infile, offset='0', check=False, mid_in=MID_IN, mid_out=MID_OUT):
+def read(infile, offset='0', check=False):
     if offset.startswith('-'):
         datasize = os.path.getsize(infile) + int(offset, 0)
         offset = datasize % 128
@@ -80,7 +80,7 @@ def read(infile, offset='0', check=False, mid_in=MID_IN, mid_out=MID_OUT):
                     tmp = mkstemp()[1]
                     with open(tmp, 'wb') as f:
                         f.write(d)
-                    dx7dat, dx72dat, tx7dat, channel = read2(mid_in, mid_out, tmp, offset, check)
+                    dx7dat, dx72dat, tx7dat, channel = read2(tmp, offset, check)
                     os.remove(tmp)
                     dx7data += dx7dat
                     dx72data += dx72dat
@@ -90,10 +90,10 @@ def read(infile, offset='0', check=False, mid_in=MID_IN, mid_out=MID_OUT):
                     print ("! only {} from {} files in zip were read".format(zflist.index(n)+1, len(zflist)))
                     break
     else:
-        dx7data, dx72data, tx7data, channel = read2(mid_in, mid_out, infile, offset, check)
+        dx7data, dx72data, tx7data, channel = read2(infile, offset, check)
     return dx7data, dx72data, tx7data, channel
 
-def read2(mid_in, mid_out, infile, offset, check=False):
+def read2(infile, offset, check=False):
     ext = os.path.splitext(infile)[1].lower()
     size = os.path.getsize(infile)-offset
     data = array.array("B")
@@ -101,11 +101,6 @@ def read2(mid_in, mid_out, infile, offset, check=False):
         data.fromfile(f, offset+size)
     data = data.tolist()[offset:]
     
-    #Dump Request
-    if dxcommon.ENABLE_MIDI:
-        if ext==".req" and data[0] == 0xf0:
-            data, size = dxcommon.req2data(data, mid_in, mid_out)
-
     #check if file is a MIDI file
     if data[0:4] == [0x4d, 0x54, 0x68, 0x64]: #"MThd"
         data = syxmidi.mid2syx(data)
@@ -422,6 +417,30 @@ def read2(mid_in, mid_out, infile, offset, check=False):
             print ("!! Bohm 4x9 import (experimental)")
             bhm = data[i+9:i+9+88]
             vmm = bohmorla.fourxnine2vmm(bhm)
+            dx7data += fourop.vmm2vmem(vmm)[0]
+            dx72data += fourop.vmm2vmem(vmm)[1]
+
+    # ELKA EK44 EM44
+    for i in range(size - 146):
+        if data[i]==0xf0 and data[i+1]==0x2f and (data[i+2] & 0xf0)==0x40 and data[i+3]==0x09 and (data[i+4] in range(0x40, 0x60)) and data[i+149]==0xf7:
+            name = dxcommon.list2string(data[i+140:i+148])
+            print("!! ELKA EK/EM/ER 44 import (experimental)")
+            vmm = elka.ek2vmm(data[i+5:i+5+67], name + " 1")
+            dx7data += fourop.vmm2vmem(vmm)[0]
+            dx72data += fourop.vmm2vmem(vmm)[1]
+
+            vmm = elka.ek2vmm(data[i+5+67:i+5+2*67], name + " 2")
+            dx7data += fourop.vmm2vmem(vmm)[0]
+            dx72data += fourop.vmm2vmem(vmm)[1]
+
+        elif data[i]==0xf0 and data[i+1]==0x2f and (data[i+2] & 0xf0)==0x40 and data[i+3]==0x09 and (data[i+4] in range(0x40, 0x60)) and data[i+150]==0xf7:
+            name = dxcommon.list2string(data[i+140:i+149])
+            print("!! ELKA EK/EM/ER 44 import (experimental)")
+            vmm = elka.ek2vmm(data[i+5:i+5+67], name + "1")
+            dx7data += fourop.vmm2vmem(vmm)[0]
+            dx72data += fourop.vmm2vmem(vmm)[1]
+
+            vmm = elka.ek2vmm(data[i+5+67:i+5+2*67], name + "2")
             dx7data += fourop.vmm2vmem(vmm)[0]
             dx72data += fourop.vmm2vmem(vmm)[1]
 
@@ -859,7 +878,7 @@ def read2(mid_in, mid_out, infile, offset, check=False):
             dx72data += fourop.vmm2vmem(vmm)[1]
 
     elif size==2450 and ext==".fbd":
-        print ("! FB01 to 4op TX/DX conversion")
+        print ("! FB01 to TX/DX conversion")
         for i in range(49):
             fb = 64*[0]
             fb[:7] = data[1+8*i:8+8*i]
@@ -868,10 +887,30 @@ def read2(mid_in, mid_out, infile, offset, check=False):
             dx7data += fb01.fb2vmem(fb)[0]
             dx72data += fb01.fb2vmem(fb)[1]
 
+
+    # RYM2612
+    elif ext == ".rym2612":
+        print("!! Inphonik RYM2612 conversion")
+        with open(infile) as f:
+            xml = f.read()
+            rym = rym2612.xml2rym(xml)
+            vmm = rym2612.rym2vmm(rym)
+            dx7data += fourop.vmm2vmem(vmm)[0]
+            dx72data += fourop.vmm2vmem(vmm)[1]
+
     # TFM Music Maker instrument files
     elif ext == ".tfi" and size == 42:
         print ("!! TFM Music Maker instrument (.tfi) conversion")
-        fbdat = fb01.tfm2fb(data, infile)
+        fbdat = fb01.tfi2fb(data, infile)
+        dx7dat = fb01.fb2vmem(fbdat)[0]
+        vname = os.path.basename(infile)[:-4] + "          "
+        vname = vname[:10]
+        dx7dat[118:128] = dxcommon.string2list(vname)
+        dx7data += dx7dat
+        dx72data += fb01.fb2vmem(fbdat)[1]
+    elif ext == ".vgi" and size == 43:
+        print ("!! VGM Music Maker instrument (.vgi) conversion")
+        fbdat = fb01.vgi2fb(data, infile)
         dx7dat = fb01.fb2vmem(fbdat)[0]
         vname = os.path.basename(infile)[:-4] + "          "
         vname = vname[:10]
@@ -1064,7 +1103,7 @@ def pre_write(dx7data, dx72data, tx7data, dx72, TX7):
 
     return dx7data, dx72data, tx7data
 
-def write(outfile, dx7data, dx72data, tx7data, dx72, TX7, channel=0, nosplit=False, mid_out=MID_OUT, split=False):
+def write(outfile, dx7data, dx72data, tx7data, dx72, TX7, channel=0, nosplit=False, split=False):
     if outfile == os.devnull:
         nosplit = True
     dx7data, dx72data, tx7data = pre_write(dx7data, dx72data, tx7data, dx72, TX7)
@@ -1077,9 +1116,6 @@ def write(outfile, dx7data, dx72data, tx7data, dx72, TX7, channel=0, nosplit=Fal
         mid = True
     if ext.lower() == ".dx7":
         dx72 = False
-    if dxcommon.ENABLE_MIDI:
-        if outfile[-4:] == "MIDI":
-            nosplit = True
  
     # PEG range DX7II AMEM to DX7 VMEM conversion:
     if dx72==False:
@@ -1131,7 +1167,7 @@ def write(outfile, dx7data, dx72data, tx7data, dx72, TX7, channel=0, nosplit=Fal
             if patchcount==1:
                 dat = dx7data[:128]
             else:
-                dat += dx7data[4096*bank:4096*(bank+1)]
+                dat += dx7data[4096*bank:min(len(dx7data)+1, 4096*(bank+1))]
 
         elif ext.lower()==".txt":
             if patchcount==1 or len(dx7data) == 128:
@@ -1191,9 +1227,6 @@ def write(outfile, dx7data, dx72data, tx7data, dx72, TX7, channel=0, nosplit=Fal
         with open(outfile, 'wb') as f:
             array.array('B', dat).tofile(f)
 
-    if dxcommon.ENABLE_MIDI:
-        if outfile[-4:] == "MIDI":
-            dxcommon.data2midi(dat, mid_out)
 
     return "Ready. {} Patch(es) written to output file(s)".format(len(dx7data)//128)
 
@@ -1236,7 +1269,7 @@ def dxsort(dx7data, dx72data, tx7data, dx72, TX7, casesens=False):
             L.sort()
         else:
             for i in range(len(L)):
-                L[i] = dxcommon.list2string(L[i])
+                L[i] = dxcommon.list2str(L[i])
             L.sort(key=str.lower)
             for i in range(len(L)):
                 L[i] = dxcommon.string2list(L[i])
@@ -1266,6 +1299,20 @@ def dxnodupes(dx7data, dx72data, tx7data, dx72, TX7, nodupes2):
         dx7data, dx72data, tx7data = list2dx(l)
     return dx7data, dx72data, tx7data
 
+def dxno4op(dx7data, dx72data, tx7data):
+    print("Removing patches that only use 4 operators (or less)")
+    dx7dat, dx72dat, tx7dat = [], [], []
+    for i in range(len(dx7data)//128):
+        numop = 0
+        for op in range(6):
+            if dx7data[128*i + 17*op + 14] > 0:
+                numop += 1
+        if numop > 4:
+            dx7dat += dx7data[128*i:128*i+128]
+            dx72dat += dx72data[35*i:35*i+35]
+            tx7dat += tx7data[64*i:64*i+64]
+    return dx7dat, dx72dat, tx7dat
+ 
 def dxfind(dx7data, dx72data, tx7data, keywords, include=True):
     print ("Searching for: {}".format(keywords))
     dx7dat, dx72dat, tx7dat = [], [], []

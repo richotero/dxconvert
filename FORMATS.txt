@@ -222,6 +222,10 @@ DX/TXconvert currently can import and convert data FROM the following file forma
     ext=".tfi"
     size=42 bytes
 
+    # VGM Music Maker instrument file
+    ext=".vgi"
+    size=43 bytes
+
     # Böhm Dynamic Expander 12/24
     # Orla DSE 12/24
     size = 73 bytes for one patch
@@ -232,4 +236,6 @@ DX/TXconvert currently can import and convert data FROM the following file forma
     # TX81Z/DX11 Librarian (Bowker/Henderson/Michelson)
     ext=".PAT"
 
+    # Inphonik RYM2612 Iconic FM synthesizer
+    ext=".rym2612"
 

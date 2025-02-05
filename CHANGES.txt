@@ -1,5 +1,30 @@
 DXconvert HISTORY
 -----------------
+3.2.3 (20241209)
+- Inphonik RYM2612 Iconic FM Synthesizer support
+- Bugfix: --sort/-S option changing patchdata
+
+3.2.2 (20240703)
+- import Elka EK/ER/EM44, ER33 sysex (experimental)
+- vgi file import (similar to tfi file import) 
+- fix DX100 write 24 patches/bank
+
+3.2.1 (20231003)
+- YS200/TQ5 and V50 detailed parameter values in vmm2txt
+
+3.2.0 (20230816)
+- DXconvert on a diet
+- rtmidi no longer required
+- removed MIDI I/O support. There are other, better tools for that like amidi, Sysex Librarian, Midi-Ox, etc.
+- dxtxmidi.cfg not used anymore
+- REQuests directory not distributed with DXconvert anymore
+- FB01 to 4op sustain sw. fix
+- Reface DX PB range fix
+
+3.1.7 (20220511)
+- fixed a bug with filename extensions when using dxconvert-gui.py with --split option
+- added commandline option --no4op for dxconvert.py to remove patches that only use 4 operators or less 
+
 3.1.6 (20210606)
 - Chorus FX low rate, high depth on RefaceDX to match DX21/DX27s Chorus
 - minor bugfixes

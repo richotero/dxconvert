@@ -1,8 +1,6 @@
 
     Input file(s):            Selects input file(s)
                               shift+click to select multiple files in fileselector
-                              Select a .req file to request data from MIDI input.
-
 
     Output file:              Select output file name.
                               Possible file name extensions:
@@ -13,12 +11,6 @@
                               .syx (or any other extension) = pure SysEx file
                               .txt = parameterlist for one patch, or patchname list
                               
-                              Dump directly to MIDI output:
-                              enter "MIDI" (without the quotes) as filename
-
-    Midi configuration:       Click on the MIDI icon and select the relevant MIDI ports.
-                              The selection will be saved in a file "dxtxmidi.cfg"
-
     Options:
         --brightness VALUE    Adjust global brightness. (+/-) 
         --bc                  Use BreathControl (if available)

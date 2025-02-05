@@ -35,7 +35,7 @@ try:
 except:
     WITH_TOOLTIP = False
 from DXconvert import DXC
-from DXconvert import dxcommon, dxcommongui
+from DXconvert import dxcommon
 
 PROGRAMNAME=DXC.PROGRAMNAME
 PROGRAMVERSION=dxcommon.PROGRAMVERSION
@@ -43,7 +43,6 @@ PROGRAMDATE=dxcommon.PROGRAMDATE
 
 LOGO='DXconvert/dxconvert.gif'
 HELP='DXconvert/dxconvert.help'
-MIDILOGO='DXconvert/midi.gif'
 for p in sys.path:
     _logo = os.path.join(p, 'DXconvert/dxconvert.gif')
     if os.path.exists(_logo):
@@ -53,11 +52,6 @@ for p in sys.path:
     _help = os.path.join(p, 'DXconvert/dxconvert.help')
     if os.path.exists(_help):
         HELP=_help
-        break
-for p in sys.path:
-    _midilogo = os.path.join(p, 'DXconvert/midi.gif')
-    if os.path.exists(_midilogo):
-        MIDILOGO=_midilogo
         break
 
 ############ GUI ##############
@@ -250,36 +244,6 @@ class dx7ConvertDialog(tkinter.Frame):
             convert_button.pack(side=LEFT, pady=15, padx=15)
         self.tooltip(convert_button, "Start dxconvert!")
 
-        if dxcommon.ENABLE_MIDI: 
-            self.mid_in = dxcommon.MID_IN
-            self.mid_out = dxcommon.MID_OUT
-            if os.getenv('MID_IN'):
-                self.mid_in = os.getenv('MID_IN')
-            self.mid_out = os.getenv('MID_OUT')
-            if os.path.exists('dxtxmidi.cfg'):
-                with open('dxtxmidi.cfg', 'r') as f:
-                    for line in f.readlines():
-                        l = line.split('=')
-                        if l[0].strip() == 'MID_IN':
-                            self.mid_in = l[1].strip()
-                        if l[0].strip() == 'MID_OUT':
-                            self.mid_out = l[1].strip()
-        
-            if os.path.exists(MIDILOGO):
-                picture = tkinter.PhotoImage(file=MIDILOGO)
-                midi_button = tkinter.Button(
-                        buttons, image=picture, width=45, height=45, relief='flat', command=self.midiconf)
-                midi_button.picture = picture
-                midi_button.pack(side=LEFT, pady=15, padx=15)
-            else:
-                midi_button = tkinter.Button(
-                        buttons, text="MIDI", width=8, command=self.midiconf)
-                midi_button.pack(side=LEFT, pady=15, padx=15)
-            self.tooltip(midi_button, "Configure MIDI")
-        else:
-            self.mid_in = None
-            self.mid_out = None
-
         quit_button = tkinter.Button(
             buttons, text="Quit", width=8, activeforeground='red', command=self.quit)
         quit_button.pack(side=LEFT, pady=15, padx=15)
@@ -291,18 +255,6 @@ class dx7ConvertDialog(tkinter.Frame):
             ToolTip(root, msg)
         else:
             pass
-
-    def midiconf(self):
-        dxcommongui.Midiconf()
-        if os.path.exists('dxtxmidi.cfg'):
-            with open('dxtxmidi.cfg', 'r') as f:
-                for line in f.readlines():
-                    l = line.split('=')
-                    if l[0].strip() == 'MID_IN':
-                        self.mid_in = l[1].strip()
-                    if l[0].strip() == 'MID_OUT':
-                        self.mid_out = l[1].strip()
- 
         return
 
     def get_infile(self):
@@ -358,6 +310,8 @@ class dx7ConvertDialog(tkinter.Frame):
         else:
             outfile_ext = os.path.splitext(outfile)[1]
             outfile_dir = os.path.split(outfile)[0]
+            print("<<<<{}>>>>".format(outfile_ext))
+            print("<<<<{}>>>>".format(outfile_dir))
 
         self.status['text'] = 'Reading ...'
         self.update()
@@ -374,7 +328,7 @@ class dx7ConvertDialog(tkinter.Frame):
             inp = os.path.normpath(inp)
             if os.path.isfile(inp):
 
-                dx7dat, dx72dat, tx7dat, channel=DXC.read(inp, offset, self.check.get(), self.mid_in, self.mid_out)
+                dx7dat, dx72dat, tx7dat, channel=DXC.read(inp, offset, self.check.get())
                 dx7data += dx7dat
                 dx72data += dx72dat
                 tx7data += tx7dat
@@ -454,10 +408,10 @@ class dx7ConvertDialog(tkinter.Frame):
                     if count>1:
                         Outfile = os.path.join(outfile_dir, outfile_name + "(" + str(count) + ")" + outfile_ext)
 
-                DXC.write(outfile_name, dx7data[128*i:128*(i+1)], dx72data[35*i:35*(i+1)], tx7data[64*i:64*(i+1)], self.dx72.get(), self.TX7.get(), channel, self.nosplit.get(), self.mid_out)
+                DXC.write(Outfile, dx7data[128*i:128*(i+1)], dx72data[35*i:35*(i+1)], tx7data[64*i:64*(i+1)], self.dx72.get(), self.TX7.get(), channel, self.nosplit.get())
             message = "Ready. {} Patches written.".format(len(dx7data)//128)
         else:
-            message = DXC.write(outfile, dx7data, dx72data, tx7data, self.dx72.get(), self.TX7.get(), channel, self.nosplit.get(), self.mid_out)
+            message = DXC.write(outfile, dx7data, dx72data, tx7data, self.dx72.get(), self.TX7.get(), channel, self.nosplit.get())
 
         self.status['text'] = 'Converting ...'
         self.update()

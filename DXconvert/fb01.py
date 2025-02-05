@@ -195,8 +195,8 @@ def opconv(fbop, ams):
 
     #OUT LEVEL
     tl = fbop[0]&127
-    tl = min(127, tl+(fbop[2]&15)) #TL adjust (?)
-    dxop[14] = out[tl]
+    tl = min(127, tl + (fbop[2]&15) ) #TL adjust (?)
+    dxop[14] = out[tl] 
     '''
     if (fbop[0] > 99):
         dxop[14] = 0
@@ -280,6 +280,7 @@ def fb2vmem(fb):
     return dx, dx2
 
 def fb2vmm(fb, yamaha='tx81z'):
+    BRIGHTNESS = 0
     fb = fbclean(fb)
     vmm = fourop.initvmm()
     ALG=fb[12]&7
@@ -301,10 +302,10 @@ def fb2vmm(fb, yamaha='tx81z'):
         vmm[6+vmad] = (AME<<6) + KVS
         
         #OUT LEVEL
-        tl = fb[fbad]
-        if tl<87:
-            tl += (fb[2]&15) #TLADJ
-        vmm[7 + vmad] = tl2out(tl, ALG, op)
+        tl = fb[fbad] + (fb[2]&15) - TLIMIT[ALG][op]
+        if fourop.carrier(ALG, op) == False:
+            tl -= BRIGHTNESS
+        vmm[7 + vmad] = dxcommon.tl2out(min(127, max(0, tl)))
 
         mul = fb[3+fbad]&15
         ih = fb[6+fbad]>>6
@@ -349,10 +350,20 @@ def fb2vmm(fb, yamaha='tx81z'):
     while (TRPS > 48): 
         TRPS -= 12
     vmm[46] = TRPS
-    vmm[47] = fb[59]&15 #PBR
-    vmm[48] = fb[58]>>4 #MONO
-    vmm[49] = int(0.78*(fb[58]&127)) #PORT
-    ASGN=fb[59]>>4
+    
+    PBR = fb[0x3b] & 15
+    vmm[47] = PBR
+    
+    CH = 0
+    MO = fb[0x3a] >> 7
+    SU = 1
+    PO = 0
+    PM = 0
+    vmm[48] = PM + 2*PO + 4*SU + 8 *MO + 16*CH
+    
+    PORT = fb[0x3a] & 127
+    vmm[49] = int(0.78*PORT)
+    ASGN = fb[0x3b] >> 4
     if ASGN == 0:
         vmm[43] = pmd
     elif ASGN == 1: #AT PITCH MOD
@@ -553,7 +564,8 @@ def fb2txt(fbdata):
         f4 = freq_fb01[4*(fbdata[19]&15) + (fbdata[22]>>6)]
         s += 'Freq.ratio: {:>8} {:>8} {:>8} {:>8}\n'.format(f1, f2, f3, f4)
         s += 'DT1 (det.): {:>8} {:>8} {:>8} {:>8}\n'.format(det(fbdata[43]>>4&7), det(fbdata[35]>>4&7), det(fbdata[27]>>4&7), det(fbdata[19]>>4&7))
-        s += 'LS type   :     {}{}     {}{}     {}{}     {}{}\n'.format(lssig[fbdata[41]>>7],
+        s += 'LS type   :     {}{}     {}{}     {}{}     {}{}\n'.format(
+                lssig[fbdata[41]>>7],
                 lstyp[fbdata[43]>>7], 
                 lssig[fbdata[33]>>7], 
                 lstyp[fbdata[35]>>7], 
@@ -578,25 +590,25 @@ def fb2txt(fbdata):
                 s += '\n'
     return dxcommon.string2list(s + '\n')
 
-def tfm2fb(tfm, fn):
+def tfi2fb(tfi, fn):
     vname = os.path.basename(fn)[:-4] + "       "
     vname = vname[:7]
     fb = initfb()
-    ALG = tfm[0]
-    FBL = tfm[1] 
+    ALG = tfi[0]
+    FBL = tfi[1] 
     fb[:7] = dxcommon.string2list(vname)
     fb[0x0c] = (FBL<<3) + ALG
     for op in range(4):
         fop = (16, 32, 24, 40)[op]
-        MUL = tfm[10*op + 2]
-        DT = tfm[10*op + 3]
-        TL = tfm[10*op + 4]
-        RS = tfm[10*op + 5]
-        AR = tfm[10*op + 6]
-        DR = tfm[10*op + 7]
-        SR = tfm[10*op + 8]
-        RR = tfm[10*op + 9]
-        SL = tfm[10*op + 10]
+        MUL = tfi[10*op + 2]
+        DT = tfi[10*op + 3]
+        TL = tfi[10*op + 4]
+        RS = tfi[10*op + 5]
+        AR = tfi[10*op + 6]
+        DR = tfi[10*op + 7]
+        SR = tfi[10*op + 8]
+        RR = tfi[10*op + 9]
+        SL = tfi[10*op + 10]
         SSG = 10*op + 11
 
         fb[fop] = TL
@@ -605,5 +617,10 @@ def tfm2fb(tfm, fn):
         fb[fop + 0x05] = DR
         fb[fop + 0x06] = SR
         fb[fop + 0x07] = (SL<<4) + RR 
+    return fb
+
+def vgi2fb(vgi, fn):
+    fb = tfi2fb(vgi[:2] + vgi[3:], fn)
+    fb[13] = vgi[2] # AMS, PMS
     return fb
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/bin/env python3
 VERSION = "20191212"
 import sys
 import array

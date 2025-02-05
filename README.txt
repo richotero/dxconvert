@@ -1,5 +1,5 @@
-DXCONVERT/TXCONVERT version 3.x
-date: 20210508
+DXCONVERT/TXCONVERT version 3.2.3
+date: 20241209
 
 ===================================
 
@@ -37,14 +37,11 @@ give you some idea about the use of TXconvert also.
 
 REQUIREMENTS?
 
-These tools were written using Python 3.8 
+These tools were written using Python 3.x 
 If you install the latest stable version of 3.x it should work.
 It might also work with Python 2.7, but this is not guaranteed anymore.
 
-Python is available for free for all major platforms ( Windows, Mac, Linux).
-
-For MIDI support python-rtmidi is required. It's available from: 
-    http://pypi.python.org/pypi/python-rtmidi/
+Python is available for free for all major platforms (Windows, Mac, Linux).
 
 For import of TX7/DX21/DX100/DX11 cassette-interface data in wav or cas
 format you need the MSX castools from Vincent vam Dam. You can find it
@@ -68,12 +65,6 @@ ${HOME}/.local/lib/python-3.7/site-packages/. And I have copied/renamed
 dxconvert.py to ~/bin/dxconvert in my HOME directory. 
 The ideal situation is when dxconvert.py is in your systems PATH 
 and the DXconvert subdirectory in your PYTHONPATH.
-
-If you have installed python-rtmidi MIDI I/O support is available.
-Running midi_help.py script will show you the available MII ports.
-You can select the ones you need and create an initial dxtxmidi.cfg
-file. You can also use the main dx/txconvert programs to select the
-MIDI ports. In simple situations this only needs to be done once.
 
 NOTE: I do no not know much about Windows and Mac. Please add information 
 to this README file and send it to me if you have used DXconvert 
@@ -122,10 +113,6 @@ values as displayed on DX7)
 voicenames.
 
 5) other or no extension: SysEx format is used.
-
-6) Special: if "MIDI" (without the quotes, case-sensitive) is selected as 
-outfile name, data will be sent to a MIDI port, if available. To select 
-the right MIDI port click on the MIDI icon.  
 
 Many additional options are available like sorting, selecting, and
 randomizing patches. Just click on the switches or fill in the appropiate
@@ -223,7 +210,7 @@ https://paypal.me/mtarenskeen
 
 CONTACT:
 
-m.tarenskeenATkpnmail.nl
+m.tarenskeen@kpnmail.nl
 
 or join the Facebook Yamaha DX7 owners, Yamaha Reface, Yamaha Soundmondo, Korg DS8 & 707, and/or Yamaha V50 group(s), 
 or join the YamahaDX forum at groups.io 

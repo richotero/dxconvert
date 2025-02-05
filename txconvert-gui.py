@@ -36,7 +36,7 @@ try:
 except ImportError:
     WITH_TOOLTIP = False
 from DXconvert import TXC
-from DXconvert import dxcommon, dxcommongui
+from DXconvert import dxcommon
 
 PROGRAMNAME=TXC.PROGRAMNAME
 PROGRAMVERSION=dxcommon.PROGRAMVERSION
@@ -44,7 +44,6 @@ PROGRAMDATE=dxcommon.PROGRAMDATE
 
 LOGO='DXconvert/txconvert.gif'
 HELP='DXconvert/txconvert.help'
-MIDILOGO='DXconvert/midi.gif'
 for p in sys.path:
     _logo = os.path.join(p, 'DXconvert/txconvert.gif')
     if os.path.exists(_logo):
@@ -54,11 +53,6 @@ for p in sys.path:
     _help = os.path.join(p, 'DXconvert/txconvert.help')
     if os.path.exists(_help):
         HELP=_help
-        break
-for p in sys.path:
-    _midilogo = os.path.join(p, 'DXconvert/midi.gif')
-    if os.path.exists(_midilogo):
-        MIDILOGO=_midilogo
         break
 
 ############ GUI ##############
@@ -244,37 +238,8 @@ class txConvertDialog(tkinter.Frame):
             convert_button = tkinter.Button(
                 buttons, text="CONVERT!", width=8, fg='green', command=self.convert)
             convert_button.pack(side=LEFT, pady=15, padx=15)
-        self.tooltip(convert_button, "Start txconvert!")
 
-        if dxcommon.ENABLE_MIDI:
-            self.mid_in = dxcommon.MID_IN
-            self.mid_out = dxcommon.MID_OUT
-            if os.getenv('MID_IN'):
-                self.mid_in = os.getenv('MID_IN')
-            self.mid_out = os.getenv('MID_OUT')
-            if os.path.exists('dxtxmidi.cfg'):
-                with open('dxtxmidi.cfg', 'r') as f:
-                    for line in f.readlines():
-                        l = line.split('=')
-                        if l[0].strip() == 'MID_IN':
-                            self.mid_in = l[1].strip()
-                        if l[0].strip() == 'MID_OUT':
-                            self.mid_out = l[1].strip()
-        
-            if os.path.exists(MIDILOGO):
-                picture = tkinter.PhotoImage(file=MIDILOGO)
-                midi_button = tkinter.Button(
-                        buttons, image=picture, width=45, height=45, relief='flat', command=self.midiconf)
-                midi_button.picture = picture
-                midi_button.pack(side=LEFT, pady=15, padx=15)
-            else:
-                midi_button = tkinter.Button(
-                        buttons, text="MIDI", width=8, command=self.midiconf)
-                midi_button.pack(side=LEFT, pady=15, padx=15)
-            self.tooltip(midi_button, "Configure MIDI")
-        else:
-            self.mid_in = None
-            self.mid_out = None
+        self.tooltip(convert_button, "Start txconvert!")
 
         quit_button = tkinter.Button(
                 buttons, text="Quit", width=8, activeforeground='red', command=self.quit)
@@ -287,19 +252,7 @@ class txConvertDialog(tkinter.Frame):
             ToolTip(root, msg)
         else:
             pass
-        
-    def midiconf(self):
-        dxcommongui.Midiconf()
-        if os.path.exists('dxtxmidi.cfg'):
-            with open('dxtxmidi.cfg', 'r') as f:
-                for line in f.readlines():
-                    l = line.split('=')
-                    if l[0].strip() == 'MID_IN':
-                        self.mid_in = l[1].strip()
-                    if l[0].strip() == 'MID_OUT':
-                        self.mid_out = l[1].strip()
-        return
-
+        return        
 
     def get_infile(self):
         infile = tkinter.filedialog.askopenfilenames(
@@ -380,14 +333,14 @@ class txConvertDialog(tkinter.Frame):
             split = 32
         if self.split.get():
             split = 1
-        if self.nosplit.get() or (outfile == "MIDI"):
+        if self.nosplit.get():
             split = sys.maxsize
 
 
         for inp in infile:
             inp = os.path.normpath(inp)
             if os.path.isfile(inp):
-                txdat, channel = TXC.read(inp, offset, self.check.get(), yamaha, self.mid_in, self.mid_out)
+                txdat, channel = TXC.read(inp, offset, self.check.get(), yamaha)
                 txdata += txdat
                 self.status['text'] = 'Read {}'.format(inp)
                 self.update()
@@ -522,7 +475,7 @@ class txConvertDialog(tkinter.Frame):
                         if count>1:
                             Outfile = os.path.join(outfile_dir, outfile_name + "(" + str(count) + ")" + outfile_ext)
  
-                    TXC.write(Outfile, txdata[64*i:64*(i+1)], channel, self.nosplit.get(), 1, yamaha, self.mid_out)
+                    TXC.write(Outfile, txdata[64*i:64*(i+1)], channel, self.nosplit.get(), 1, yamaha)
                 message = "Ready. {} Patches written.".format(len(txdata)//64)
             elif REFACE:
                 for i in range(len(txdata)//150):
@@ -536,7 +489,7 @@ class txConvertDialog(tkinter.Frame):
                         if count>1:
                             Outfile = os.path.join(outfile_dir, outfile_name + "(" + str(count) + ")" + outfile_ext)
  
-                    TXC.write(Outfile, txdata[150*i:150*(i+1)], channel, self.nosplit.get(), 1, yamaha, self.mid_out)
+                    TXC.write(Outfile, txdata[150*i:150*(i+1)], channel, self.nosplit.get(), 1, yamaha)
                 message = "Ready. {} Patches written.".format(len(txdata)//150)
  
             else:
@@ -551,10 +504,10 @@ class txConvertDialog(tkinter.Frame):
                         if count>1:
                             Outfile = os.path.join(outfile_dir, outfile_name + "(" + str(count) + ")" + outfile_ext)
  
-                    TXC.write(Outfile, txdata[128*i:128*(i+1)], channel, self.nosplit.get(), 1, yamaha, self.mid_out)
+                    TXC.write(Outfile, txdata[128*i:128*(i+1)], channel, self.nosplit.get(), 1, yamaha)
                 message = "Ready. {} Patches written.".format(len(txdata)//128)
         else:
-            message = TXC.write(outfile, txdata, channel, self.nosplit.get(), split, yamaha, self.mid_out)
+            message = TXC.write(outfile, txdata, channel, self.nosplit.get(), split, yamaha)
 
 
         self.status['text'] = 'Converting ...'
